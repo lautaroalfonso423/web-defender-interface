@@ -19,15 +19,22 @@ interface SiteData {
   latencyData: LatencyPoint[];
 }
 
+interface urlData {
+    url: string;
+    name: string;
+}
+
 
 
 export default function HomeView() {
-  const [sites, setSites] = useState<SiteData[]>([]);
-  const [loading, setLoading] = useState(true);
+    const [sites, setSites] = useState<SiteData[]>([]);
+    const [url, setUrl] = useState<urlData>({url: "", name: ""});
+    const [loading, setLoading] = useState(true);
+    const [modal, setModal] = useState(false);
 
   const fetchData = async () => {
     try {
-      const res = await fetch('http://localhost:3000/sites/render'); // Tu ruta de Nest
+      const res = await fetch('http://localhost:3000/sites/render');
       const data = await res.json();
       setSites(data);
     } catch (error) {
@@ -36,6 +43,29 @@ export default function HomeView() {
       setLoading(false);
     }
   };
+
+    const creationSite = async () => {
+        try {
+            const res = await fetch('http://localhost:3000/sites/creation', {
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(url), 
+        });
+            if (res.ok) {
+            const data = await res.json();
+            
+            setModal(false);
+            
+            setUrl ({ url: '', name: '' });
+            
+            fetchData(); 
+        }
+        } catch (error) {
+            console.error("Error al crear el sitio", error);
+        }
+    };
 
   useEffect(() => {
     fetchData();
@@ -54,9 +84,73 @@ return (
           <Activity className="text-blue-600" /> System Health
         </h1>
         <p className="text-slate-500 text-sm">Monitoreo en tiempo real de servicios</p>
-      </header>
+        <button
+        onClick={() => setModal(true)}
+        className="mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-md shadow-blue-200 transition-all active:scale-95 flex items-center gap-2"
+        >
+        <span className="text-lg">+</span> Add Site
+        </button>
+        </header>
+        
+        {modal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl transform transition-all">
+                <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <span className="bg-blue-100 p-2 rounded-lg text-blue-600 text-sm">🌐</span>
+                    Agregar nuevo sitio
+                </h2>
 
-      {/* Grid de Tarjetas */}
+                <div className="space-y-4">
+                    {/* Campo URL */}
+                    <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-slate-600 ml-1">
+                        URL de la página
+                    </label>
+                    <input 
+                        name= "url"
+                        type="url" 
+                        onChange={(e) => setUrl({...url, url: e.target.value})}
+                        placeholder="https://ejemplo.com"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-slate-700 placeholder:text-slate-400"
+                    />
+                    </div>
+
+                    {/* Campo Nombre */}
+                    <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-slate-600 ml-1">
+                        Nombre del sitio
+                    </label>
+                    <input 
+                        name="name"
+                        type="text" 
+                        onChange={(e) => setUrl({...url, name: e.target.value})}
+                        placeholder="Mi Servidor API"
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-slate-700 placeholder:text-slate-400"
+                    />
+                    </div>
+                </div>
+
+                <div className="mt-8 flex gap-3">
+                   
+                    <button 
+                    onClick={creationSite}
+                    className="flex-1 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md shadow-blue-200 transition-all active:scale-95"
+                    >
+                    Guardar Monitor
+                    </button>
+
+                
+                    <button 
+                    onClick={() => setModal(false)}
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-lg transition-all"
+                    >
+                    Cancelar
+                    </button>
+                </div>
+                </div>
+            </div>
+            )}
+       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sites.map((site) => (
           <div 
@@ -110,7 +204,7 @@ return (
                 }`}>
                     Status: {site.status === 0 ? 'Timeout' : site.status}
                 </span>
-                <span className="text-slate-400 italic">Actualizado hace 1 min</span>
+        
             </div>
           </div>
         ))}
